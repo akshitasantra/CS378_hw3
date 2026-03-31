@@ -243,84 +243,40 @@ def prob3():
     mm3 = map3.add_object('mm1_map3', mobile_manipulator)
     mv3 = map3.add_object('mv1_map3', mobile_vacuum)
 
+    rooms = [rm1, rm2, rm3, rm4, rm5, rm6, rm7, rm8, corridor]
+
+    # Initialize fluents to False first
+    for r in rooms:
+        map3.set_initial_value(clean(r), False)
+        map3.set_initial_value(tidy(r), False)
+        map3.set_initial_value(current_room_manipulator(mm3, r), False)
+        map3.set_initial_value(current_room_vacuum(mv3, r), False)
+        for r_other in rooms:
+            map3.set_initial_value(connected(r, r_other), False)
+
+    # Robot starting positions
     map3.set_initial_value(current_room_manipulator(mm3, corridor), True)
     map3.set_initial_value(current_room_vacuum(mv3, corridor), True)
 
-    map3.set_initial_value(current_room_manipulator(mm3, rm1), False)
-    map3.set_initial_value(current_room_manipulator(mm3, rm2), False)
-    map3.set_initial_value(current_room_manipulator(mm3, rm3), False)
-    map3.set_initial_value(current_room_manipulator(mm3, rm4), False)
-    map3.set_initial_value(current_room_manipulator(mm3, rm5), False)
-    map3.set_initial_value(current_room_manipulator(mm3, rm6), False)
-    map3.set_initial_value(current_room_manipulator(mm3, rm7), False)
-    map3.set_initial_value(current_room_manipulator(mm3, rm8), False)
-
-    map3.set_initial_value(current_room_vacuum(mv3, rm1), False)
-    map3.set_initial_value(current_room_vacuum(mv3, rm2), False)
-    map3.set_initial_value(current_room_vacuum(mv3, rm3), False)
-    map3.set_initial_value(current_room_vacuum(mv3, rm4), False)
-    map3.set_initial_value(current_room_vacuum(mv3, rm5), False)
-    map3.set_initial_value(current_room_vacuum(mv3, rm6), False)
-    map3.set_initial_value(current_room_vacuum(mv3, rm7), False)
-    map3.set_initial_value(current_room_vacuum(mv3, rm8), False)
-
-    # Room connectivity
-    map3.set_initial_value(connected(corridor, rm1), True)
-    map3.set_initial_value(connected(rm1, corridor), True)
-    map3.set_initial_value(connected(corridor, rm2), True)
-    map3.set_initial_value(connected(rm2, corridor), True)
-    map3.set_initial_value(connected(corridor, rm3), True)
-    map3.set_initial_value(connected(rm3, corridor), True)
-    map3.set_initial_value(connected(corridor, rm4), True)
-    map3.set_initial_value(connected(rm4, corridor), True)
-    map3.set_initial_value(connected(corridor, rm5), True)
-    map3.set_initial_value(connected(rm5, corridor), True)
-    map3.set_initial_value(connected(corridor, rm6), True)
-    map3.set_initial_value(connected(rm6, corridor), True)
-    map3.set_initial_value(connected(corridor, rm7), True)
-    map3.set_initial_value(connected(rm7, corridor), True)
-    map3.set_initial_value(connected(corridor, rm8), True)
-    map3.set_initial_value(connected(rm8, corridor), True)
+    # Room connectivity (corridor hub)
+    for r in [rm1, rm2, rm3, rm4, rm5, rm6, rm7, rm8]:
+        map3.set_initial_value(connected(corridor, r), True)
+        map3.set_initial_value(connected(r, corridor), True)
 
     # Initial room states
-    map3.set_initial_value(clean(rm1), False)
-    map3.set_initial_value(clean(rm2), False)
-    map3.set_initial_value(clean(rm3), False)
-    map3.set_initial_value(clean(rm4), False)
-    map3.set_initial_value(tidy(rm1), True)
-    map3.set_initial_value(tidy(rm2), True)
-    map3.set_initial_value(tidy(rm3), True)
-    map3.set_initial_value(tidy(rm4), True)
+    for r in [rm1, rm2, rm3, rm4]:
+        map3.set_initial_value(tidy(r), True)   # tidy but not clean
 
-    map3.set_initial_value(clean(rm5), True)
-    map3.set_initial_value(clean(rm6), True)
-    map3.set_initial_value(clean(rm7), True)
-    map3.set_initial_value(clean(rm8), True)
-    map3.set_initial_value(tidy(rm5), False)
-    map3.set_initial_value(tidy(rm6), False)
-    map3.set_initial_value(tidy(rm7), False)
-    map3.set_initial_value(tidy(rm8), False)
+    for r in [rm5, rm6, rm7, rm8]:
+        map3.set_initial_value(clean(r), True)  # clean but not tidy
 
     map3.set_initial_value(clean(corridor), True)
     map3.set_initial_value(tidy(corridor), True)
 
-    # Goal: all rooms tidy and clean
-    map3.add_goal(clean(rm1))
-    map3.add_goal(clean(rm2))
-    map3.add_goal(clean(rm3))
-    map3.add_goal(clean(rm4))
-    map3.add_goal(clean(rm5))
-    map3.add_goal(clean(rm6))
-    map3.add_goal(clean(rm7))
-    map3.add_goal(clean(rm8))
-    map3.add_goal(tidy(rm1))
-    map3.add_goal(tidy(rm2))
-    map3.add_goal(tidy(rm3))
-    map3.add_goal(tidy(rm4))
-    map3.add_goal(tidy(rm5))
-    map3.add_goal(tidy(rm6))
-    map3.add_goal(tidy(rm7))
-    map3.add_goal(tidy(rm8))
+    # Goals
+    for r in [rm1, rm2, rm3, rm4, rm5, rm6, rm7, rm8]:
+        map3.add_goal(clean(r))
+        map3.add_goal(tidy(r))
 
     return map3
 
@@ -330,8 +286,19 @@ def prob3():
 from unified_planning.engines import PlanGenerationResultStatus
 
 def solve(prob):
-    # FIX: Using the `with` block ensures memory/engine processes are released between solves
     with OneshotPlanner(name='tamer') as planner:
+        result = planner.solve(prob)
+        if result.status in [PlanGenerationResultStatus.SOLVED_SATISFICING,
+                             PlanGenerationResultStatus.SOLVED_OPTIMALLY]:
+            print("SOLVED")
+            # FIX: changed `plan` to `result.plan`
+            for start, action, duration in result.plan.timed_actions:
+                print(f"{float(start)}: {action} [{float(duration)}]")
+        else:
+            print("NOT SOLVED")
+
+def solve_aries(prob):
+    with OneshotPlanner(name='aries') as planner:
         result = planner.solve(prob)
         if result.status in [PlanGenerationResultStatus.SOLVED_SATISFICING,
                              PlanGenerationResultStatus.SOLVED_OPTIMALLY]:
@@ -349,4 +316,4 @@ print("\nMap2")
 solve(prob2())
 
 print("\nMap3")
-solve(prob3())
+solve_aries(prob3())
