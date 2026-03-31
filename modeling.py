@@ -337,10 +337,10 @@ def solve_aries(prob):
 
 
 print("Map1")
-solve(prob1())
+solve_aries(prob1())
 
 print("\nMap2")
-solve(prob2())
+solve_aries(prob2())
 
 print("\nMap3")
 solve_aries(prob3())
